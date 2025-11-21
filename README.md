@@ -6,7 +6,7 @@
   </p>
   
   <p>
-    <a href="https://xiaoxunge.github.io/Personal-home-page/">
+    <a href="https://xiaoxunge.github.io">
       <img src="https://img.shields.io/badge/View_Site-2DFDFF?style=for-the-badge&logo=github&logoColor=black" alt="View Site" />
     </a>
   </p>
