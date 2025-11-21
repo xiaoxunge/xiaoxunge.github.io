@@ -2,37 +2,45 @@ import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import UnderwaterBackground from './components/UnderwaterBackground';
 import FloatingText from './components/FloatingText';
 import MainPage from './components/MainPage';
-import ChatWidget from './components/ChatWidget'; // Don't forget to import this if it wasn't already
 
 const App: React.FC = () => {
+  // --- COVER / DRAG STATE ---
   const [isDismissed, setIsDismissed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [showMainContent, setShowMainContent] = useState(false);
+  
+  // Track if the initial ascension animation (Dark Blue -> Cyan) has completed
   const [hasAscended, setHasAscended] = useState(false);
   
+  // --- PAGE NAVIGATION STATE (0=GitHub, 1=Discord, 2=Bilibili, 3=QQ) ---
   const [pageIndex, setPageIndex] = useState(0);
   const isTransitioningPage = useRef(false);
   
+  // --- CLICK / BOUNCE STATE ---
   const [isBouncing, setIsBouncing] = useState(false);
   const [labelText, setLabelText] = useState("ABOUT ME");
   const revertTimerRef = useRef<number | null>(null);
 
+  // --- REFS ---
   const startY = useRef(0);
   const isPointerDown = useRef(false);
 
+  // --- EFFECTS ---
   useEffect(() => {
     if (isDismissed) {
+      // Wait for the curtain animation to complete, then trigger main content
       const timer = setTimeout(() => {
         setShowMainContent(true);
-        setHasAscended(true);
+        setHasAscended(true); // Mark initial animation as done
       }, 2000);
       return () => clearTimeout(timer);
     }
   }, [isDismissed]);
 
-  // 优化：移除依赖数组中的 pageIndex，改用函数式更新
+  // --- PAGE NAVIGATION HANDLERS ---
   const handleNextPage = useCallback(() => {
+    // 使用函数式更新，依赖数组可以为空
     setPageIndex(prev => prev < 3 ? prev + 1 : prev);
   }, []);
 
@@ -46,7 +54,7 @@ const App: React.FC = () => {
     const handleWheel = (e: WheelEvent) => {
       if (isTransitioningPage.current) return;
       isTransitioningPage.current = true;
-      setTimeout(() => isTransitioningPage.current = false, 800);
+      setTimeout(() => isTransitioningPage.current = false, 800); 
 
       if (e.deltaY > 0 || e.deltaX > 0) {
         handleNextPage();
@@ -69,13 +77,13 @@ const App: React.FC = () => {
       
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
          if (Math.abs(deltaX) > 50) { 
-            if (deltaX > 0) handleNextPage();
-            else handlePrevPage();
+            if (deltaX > 0) handleNextPage(); 
+            else handlePrevPage(); 
          }
       } else {
          if (Math.abs(deltaY) > 50) {
-             if (deltaY > 0) handleNextPage();
-             else handlePrevPage();
+             if (deltaY > 0) handleNextPage(); 
+             else handlePrevPage(); 
          }
       }
     };
@@ -91,6 +99,9 @@ const App: React.FC = () => {
     };
   }, [showMainContent, handleNextPage, handlePrevPage]);
 
+
+  // --- DRAG HANDLERS (Cover) ---
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!e.isPrimary) return;
     isPointerDown.current = true;
@@ -100,8 +111,10 @@ const App: React.FC = () => {
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isPointerDown.current || isDismissed) return;
+
     const currentY = e.clientY;
-    const deltaY = startY.current - currentY;
+    const deltaY = startY.current - currentY; // Positive = Dragging UP
+
     if (deltaY > 10) {
       setIsDragging(true);
       setDragOffset(Math.max(0, deltaY));
@@ -141,6 +154,7 @@ const App: React.FC = () => {
     }, 5000);
   };
 
+  // --- STYLES ---
   const containerStyle = useMemo(() => {
     if (isDismissed) {
        return { 
@@ -157,6 +171,7 @@ const App: React.FC = () => {
     return { transform: 'translateY(0)', transition: 'transform 0.3s ease-out' };
   }, [isDismissed, isDragging, dragOffset, isBouncing]);
 
+  // Background Color Logic
   const getPageColor = (idx: number) => {
       switch(idx) {
           case 0: return '#06BBF7'; // Cyan
@@ -169,11 +184,13 @@ const App: React.FC = () => {
 
   const bgOverlayStyle = useMemo(() => {
      let backgroundColor = '#001E4A'; 
+     
      if (isDismissed) {
         backgroundColor = getPageColor(pageIndex);
      }
+
      const duration = isDismissed && !hasAscended ? '2.5s' : '0.8s'; 
-     const timing = 'cubic-bezier(0.45, 0, 0.55, 1)';
+     const timing = 'cubic-bezier(0.45, 0, 0.55, 1)'; 
 
      return {
          backgroundColor,
@@ -183,7 +200,10 @@ const App: React.FC = () => {
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-anime-abyss font-sans">
+      
+      {/* --- 1. MAIN SITE CONTENT (HIDDEN BEHIND CURTAIN) --- */}
       <div className="absolute inset-0 z-0">
+         {/* Transition Overlay */}
          <div 
             className="absolute inset-0 pointer-events-none z-10 will-change-[background-color]"
             style={bgOverlayStyle}
@@ -191,6 +211,8 @@ const App: React.FC = () => {
          <MainPage show={showMainContent} pageIndex={pageIndex} />
       </div>
 
+
+      {/* --- 2. THE UNDERWATER CURTAIN (SPLASH SCREEN) --- */}
       <div 
         className="absolute inset-0 z-50 will-change-transform"
         style={containerStyle}
@@ -209,6 +231,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* --- 3. FLOATING TEXT LAYER --- */}
       <div 
          className="absolute inset-0 z-[300] pointer-events-none"
          style={containerStyle}
@@ -218,9 +241,7 @@ const App: React.FC = () => {
              hideLabel={isDragging || isDismissed} 
          />
       </div>
-      
-      {}
-      <ChatWidget />
+
     </main>
   );
 };
