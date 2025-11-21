@@ -18,3 +18,4 @@
 - **Styling**: Tailwind CSS
 - **Animation**: CSS3 Keyframes (No heavy libraries)
 - **Vibe**: Deep Sea / Persona 3 Reload
+Physics-based interactive portfolio built with React 18 & Custom JS Physics Engine. Features inertia dragging, collision detection.
