@@ -18,9 +18,3 @@
 - **Styling**: Tailwind CSS
 - **Animation**: CSS3 Keyframes (No heavy libraries)
 - **Vibe**: Deep Sea / Persona 3 Reload
-
----
-
-<div align="center">
-  <i>"I am a creative developer obsessed with the intersection of design and code."</i>
-</div>
