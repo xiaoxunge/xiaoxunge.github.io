@@ -4,6 +4,9 @@ import FloatingText from './components/FloatingText';
 import MainPage from './components/MainPage';
 
 const App: React.FC = () => {
+  // --- 1. LOADING STATE (New Feature) ---
+  const [isLoading, setIsLoading] = useState(true);
+
   // --- COVER / DRAG STATE ---
   const [isDismissed, setIsDismissed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -13,7 +16,7 @@ const App: React.FC = () => {
   // Track if the initial ascension animation (Dark Blue -> Cyan) has completed
   const [hasAscended, setHasAscended] = useState(false);
   
-  // --- PAGE NAVIGATION STATE (0=GitHub, 1=Discord, 2=Bilibili, 3=QQ) ---
+  // --- PAGE NAVIGATION STATE ---
   const [pageIndex, setPageIndex] = useState(0);
   const isTransitioningPage = useRef(false);
   
@@ -26,13 +29,25 @@ const App: React.FC = () => {
   const startY = useRef(0);
   const isPointerDown = useRef(false);
 
-  // --- EFFECTS ---
+  // --- EFFECTS: FONT LOADING CHECK ---
+  useEffect(() => {
+    // 创建两个 Promise：
+    // 1. 等待所有字体加载完成
+    const fontPromise = document.fonts.ready;
+    // 2. 强制等待至少 1 秒 (让 loading 画面展示一会，避免闪烁)
+    const minTimePromise = new Promise(resolve => setTimeout(resolve, 1000));
+
+    Promise.all([fontPromise, minTimePromise]).then(() => {
+      setIsLoading(false); // 两个都完成后，取消 Loading 状态
+    });
+  }, []);
+
+  // --- EFFECTS: MAIN ANIMATION SEQUENCE ---
   useEffect(() => {
     if (isDismissed) {
-      // Wait for the curtain animation to complete, then trigger main content
       const timer = setTimeout(() => {
         setShowMainContent(true);
-        setHasAscended(true); // Mark initial animation as done
+        setHasAscended(true); 
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -40,7 +55,6 @@ const App: React.FC = () => {
 
   // --- PAGE NAVIGATION HANDLERS ---
   const handleNextPage = useCallback(() => {
-    // 使用函数式更新，依赖数组可以为空
     setPageIndex(prev => prev < 3 ? prev + 1 : prev);
   }, []);
 
@@ -100,20 +114,19 @@ const App: React.FC = () => {
   }, [showMainContent, handleNextPage, handlePrevPage]);
 
 
-  // --- DRAG HANDLERS (Cover) ---
-
+  // --- DRAG HANDLERS ---
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (!e.isPrimary) return;
+    if (!e.isPrimary || isLoading) return; // Loading 时禁止交互
     isPointerDown.current = true;
     startY.current = e.clientY;
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isPointerDown.current || isDismissed) return;
+    if (!isPointerDown.current || isDismissed || isLoading) return;
 
     const currentY = e.clientY;
-    const deltaY = startY.current - currentY; // Positive = Dragging UP
+    const deltaY = startY.current - currentY; 
 
     if (deltaY > 10) {
       setIsDragging(true);
@@ -171,24 +184,21 @@ const App: React.FC = () => {
     return { transform: 'translateY(0)', transition: 'transform 0.3s ease-out' };
   }, [isDismissed, isDragging, dragOffset, isBouncing]);
 
-  // Background Color Logic
   const getPageColor = (idx: number) => {
       switch(idx) {
-          case 0: return '#06BBF7'; // Cyan
-          case 1: return '#5865F2'; // Discord
-          case 2: return '#FB7299'; // Bilibili
-          case 3: return '#FF4D4D'; // QQ
+          case 0: return '#06BBF7'; 
+          case 1: return '#5865F2'; 
+          case 2: return '#FB7299'; 
+          case 3: return '#FF4D4D'; 
           default: return '#06BBF7';
       }
   };
 
   const bgOverlayStyle = useMemo(() => {
      let backgroundColor = '#001E4A'; 
-     
      if (isDismissed) {
         backgroundColor = getPageColor(pageIndex);
      }
-
      const duration = isDismissed && !hasAscended ? '2.5s' : '0.8s'; 
      const timing = 'cubic-bezier(0.45, 0, 0.55, 1)'; 
 
@@ -201,9 +211,23 @@ const App: React.FC = () => {
   return (
     <main className="relative w-full h-screen overflow-hidden bg-anime-abyss font-sans">
       
-      {/* --- 1. MAIN SITE CONTENT (HIDDEN BEHIND CURTAIN) --- */}
+      {/* --- 0. LOADING OVERLAY (P3R Style) --- */}
+      <div 
+        className={`fixed inset-0 z-[9999] bg-anime-abyss flex flex-col items-center justify-center transition-opacity duration-1000 ${isLoading ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        <div className="relative">
+           {/* P3R 风格的加载圆圈 */}
+           <div className="w-16 h-16 border-4 border-anime-sky/30 border-t-anime-cyan rounded-full animate-spin mb-6"></div>
+           {/* 装饰性的背景发光 */}
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-anime-cyan/10 blur-xl rounded-full"></div>
+        </div>
+        <h2 className="font-michroma text-anime-cyan tracking-[0.3em] text-sm animate-pulse">
+          SYSTEM INITIALIZING...
+        </h2>
+      </div>
+
+      {/* --- 1. MAIN SITE CONTENT --- */}
       <div className="absolute inset-0 z-0">
-         {/* Transition Overlay */}
          <div 
             className="absolute inset-0 pointer-events-none z-10 will-change-[background-color]"
             style={bgOverlayStyle}
@@ -211,8 +235,7 @@ const App: React.FC = () => {
          <MainPage show={showMainContent} pageIndex={pageIndex} />
       </div>
 
-
-      {/* --- 2. THE UNDERWATER CURTAIN (SPLASH SCREEN) --- */}
+      {/* --- 2. THE UNDERWATER CURTAIN --- */}
       <div 
         className="absolute inset-0 z-50 will-change-transform"
         style={containerStyle}
