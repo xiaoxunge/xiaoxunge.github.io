@@ -30,13 +30,21 @@ const App: React.FC = () => {
 
   // --- EFFECTS: FONT LOADING CHECK ---
   useEffect(() => {
-    const fontPromise = document.fonts.ready;
+    // 字体最多等 2.5s，超时就先放人进来，避免 Google Fonts 慢时黑屏干等
+    const fontPromise = Promise.race([
+      document.fonts.ready,
+      new Promise(resolve => setTimeout(resolve, 2500)),
+    ]);
     // 稍微缩短一点强制等待时间，让感觉更干脆
     const minTimePromise = new Promise(resolve => setTimeout(resolve, 800));
 
     Promise.all([fontPromise, minTimePromise]).then(() => {
       setIsLoading(false);
     });
+
+    // 兜底：无论如何 4s 后一定进入
+    const safety = setTimeout(() => setIsLoading(false), 4000);
+    return () => clearTimeout(safety);
   }, []);
 
   // --- EFFECTS: MAIN ANIMATION SEQUENCE ---
@@ -52,7 +60,7 @@ const App: React.FC = () => {
 
   // --- PAGE NAVIGATION HANDLERS ---
   const handleNextPage = useCallback(() => {
-    setPageIndex(prev => prev < 3 ? prev + 1 : prev);
+    setPageIndex(prev => prev < 4 ? prev + 1 : prev);
   }, []);
 
   const handlePrevPage = useCallback(() => {
@@ -182,11 +190,12 @@ const App: React.FC = () => {
 
   const getPageColor = (idx: number) => {
       switch(idx) {
-          case 0: return '#06BBF7'; 
-          case 1: return '#5865F2'; 
-          case 2: return '#FB7299'; 
-          case 3: return '#FF4D4D'; 
-          default: return '#06BBF7';
+          case 0: return '#DCE8F2'; 
+          case 1: return '#06BBF7'; 
+          case 2: return '#5865F2'; 
+          case 3: return '#FB7299'; 
+          case 4: return '#FF4D4D'; 
+          default: return '#DCE8F2';
       }
   };
 
@@ -205,7 +214,7 @@ const App: React.FC = () => {
   }, [isDismissed, pageIndex, hasAscended]);
 
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-anime-abyss font-sans">
+    <main className="relative w-full h-[100svh] overflow-hidden bg-anime-abyss font-sans">
       
       {/* --- 0. LOADING OVERLAY (Neon Green Style) --- */}
       <div 
@@ -228,7 +237,7 @@ const App: React.FC = () => {
             className="absolute inset-0 pointer-events-none z-10 will-change-[background-color]"
             style={bgOverlayStyle}
          />
-         <MainPage show={showMainContent} pageIndex={pageIndex} />
+         <MainPage show={showMainContent} pageIndex={pageIndex} onNavigate={setPageIndex} />
       </div>
 
       {/* --- 2. THE UNDERWATER CURTAIN --- */}
